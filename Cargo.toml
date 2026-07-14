@@ -7,9 +7,10 @@ edition = "2024"
 ratatui = "0.30.2"
 crossterm = "0.29.0"
 tokio = {version = "1.52.3", features = ["full"]}
-oauth2 = "5.0.0"
+oauth2 = { version = "4.4", features = ["reqwest"] }
 webbrowser = "1.2.1"
 axum = "0.8.9"
 url = "2.5.8"
 serde = { version = "1.0.228", features = ["derive"] }
 reqwest = "0.13.4"
+dotenvy = "0.15.7"

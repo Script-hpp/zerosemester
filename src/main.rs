@@ -28,7 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     loop {
         terminal.draw(|f| {
-            let size = f.size();
+            let size = f.area();
             
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -104,8 +104,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
                     }
                     KeyCode::Enter => {
-                        // Hier lösen wir später die Aktion aus!
-                        // Im Moment machen wir noch nichts.
+                        if selected_index == 1 {
+                            crate::auth::authenticate_with_notion().await;
+                        }
                     }
                     _ => {}
                 }

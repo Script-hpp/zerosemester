@@ -1,9 +1,17 @@
+use axum::{extract::Query, response::Html, routing::get, Router};
+use serde::Deserialize;
+use std::sync::Arc;
+use tokio::{net::TcpListener, sync::{oneshot, Mutex}};
 use oauth2::{
 basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl,CsrfToken, TokenResponse
 };
 
+#[derive(Deserialize)]
+struct AuthCallback {
+    code: String,
+}
 
-pub fn build_oauth_client() -> BasicClient {
+pub async fn authenticate_with_notion() {
     let client_id = ClientId::new("YOUR_CLIENT_ID".to_string());
     let client_secret = ClientSecret::new("YOUR_CLIENT_SECRET".to_string());
     let auth_url = AuthUrl::new("https://api.notion.com/v1/oauth/authorize".to_string())
@@ -13,25 +21,66 @@ pub fn build_oauth_client() -> BasicClient {
     let redirect_url = RedirectUrl::new("http://localhost:8080/callback".to_string())
         .expect("Invalid redirect URL");
 
-    let client= BasicClient::new(client_id)
-    .set_client_secret(client_secret)
-    .set_auth_uri(auth_url)
-    .set_token_uri(token_url)
+    let client = BasicClient::new(
+        client_id,
+        Some(client_secret),
+        auth_url,
+        Some(token_url),
+    )
     .set_redirect_uri(redirect_url);
 
-    client
-    
-}
-
-pub async fn authenticate_with_notion(){
-    let client = build_oauth_client();
     let (auth_url, _csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         .url();
+
+    let (tx, rx) = oneshot::channel::<String>();
+
+    let shared_tx = Arc::new(Mutex::new(Some(tx)));
+
+    let app = Router::new().route(
+        "/callback",
+        get({
+            let shared_tx = Arc::clone(&shared_tx);
+            move |Query(query): Query<AuthCallback>| async move {
+                if let Some(tx) = shared_tx.lock().await.take() {
+                    let _ = tx.send(query.code.clone());
+                }
+                Html("<h1>Authentication successful! You can close this window.</h1>")
+            }
+        }),
+    );
+
+    tokio::spawn(async move {
+        let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
+        axum::serve(listener, app).await.unwrap();
+    });
+
+
     
-    if webbrowser::open(auth_url.as_str()).is_ok() {
-        println!("Opened browser for authentication. Please complete the process.");
-    } else {
-        println!("Please open the following URL in your browser to authenticate: {}", auth_url);
+    if webbrowser::open(auth_url.as_str()).is_err() {
+        println!("Failed to open browser for authentication. Please complete the process manually.");
     }
+
+    if let Ok(code) = rx.await {
+        println!("Received authorization code: {}", code);
+
+        let token_result = client
+            .exchange_code(oauth2::AuthorizationCode::new(code))
+            .request_async(oauth2::reqwest::async_http_client)
+            .await;
+        
+        match token_result {
+            Ok(token) => {
+                let access_token = token.access_token().secret();
+                std::fs::write("notion_token.txt", access_token).expect("Failed to write token to file");
+            }
+            Err(err) => {
+                std::fs::write("error.txt", format!("Fehler beim Login: {:?}", err)).unwrap();      
+            }
+        }
+    } else 
+    {
+        println!("Failed to receive authorization code.");
+    }
+    
 }
