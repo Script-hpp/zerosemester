@@ -4,6 +4,8 @@
 notion_token.txt
 error.txt
 .env
+exports/
+paperless_config.json
 
 Thumbs.db
 ehthumbs.db
