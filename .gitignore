@@ -1,0 +1,14 @@
+/target/
+**/*.rs.bk
+
+notion_token.txt
+error.txt
+.env
+
+Thumbs.db
+ehthumbs.db
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
