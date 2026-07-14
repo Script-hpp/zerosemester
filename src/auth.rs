@@ -56,8 +56,16 @@ pub async fn authenticate_with_notion() {
     );
 
     tokio::spawn(async move {
-        let listener = TcpListener::bind("127.0.0.1:8080").await.unwrap();
-        axum::serve(listener, app).await.unwrap();
+        match TcpListener::bind("127.0.0.1:8080").await {
+            Ok(listener) => {
+                if let Err(e) = axum::serve(listener, app).await {
+                    eprintln!("Server error: {}", e);
+                }
+            }
+            Err(e) => {
+                eprintln!("Could not bind to port 8080: {}. Is it already in use?", e);
+            }
+        }
     });
 
 
