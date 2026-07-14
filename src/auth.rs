@@ -5,6 +5,8 @@ use tokio::{net::TcpListener, sync::{oneshot, Mutex}};
 use oauth2::{
 basic::BasicClient, AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl,CsrfToken, TokenResponse
 };
+use dotenvy::dotenv;
+use std::env;
 
 #[derive(Deserialize)]
 struct AuthCallback {
@@ -12,8 +14,11 @@ struct AuthCallback {
 }
 
 pub async fn authenticate_with_notion() {
-    let client_id = ClientId::new("YOUR_CLIENT_ID".to_string());
-    let client_secret = ClientSecret::new("YOUR_CLIENT_SECRET".to_string());
+
+    dotenv().ok(); // Load environment variables from .env file
+    
+    let client_id = ClientId::new(env::var("NOTION_CLIENT_ID").unwrap_or_else(|_| "YOUR_CLIENT_ID".into()));
+    let client_secret = ClientSecret::new(env::var("NOTION_CLIENT_SECRET").unwrap_or_else(|_| "YOUR_CLIENT_SECRET".into()));
     let auth_url = AuthUrl::new("https://api.notion.com/v1/oauth/authorize".to_string())
         .expect("Invalid authorization endpoint URL"); 
     let token_url = TokenUrl::new("https://api.notion.com/v1/oauth/token".to_string())
