@@ -256,6 +256,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 }
                             }
                         }
+                        KeyCode::Tab | KeyCode::Char('c') => {
+                            app.use_category_folders = !app.use_category_folders;
+                        }
                         KeyCode::Char('a') => {
                             for p in &mut app.pages {
                                 p.selected = true;
@@ -280,7 +283,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         KeyCode::Esc => {
                             app.state = AppState::PageSelection;
                         }
-                        KeyCode::Tab => {
+                        KeyCode::Tab | KeyCode::Char('c') => {
                             app.use_category_folders = !app.use_category_folders;
                         }
                         KeyCode::Backspace => {
@@ -497,10 +500,16 @@ fn draw_page_selection(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
         .split(area);
 
     let selected_count = app.pages.iter().filter(|p| p.selected).count();
+    let mode_text = if app.use_category_folders {
+        "Categorized Subfolders"
+    } else {
+        "Flat Directory (Default)"
+    };
     let header = Paragraph::new(format!(
-        " 📄 Select Pages to Export (Selected: {}/{}) ",
+        " 📄 Select Pages to Export (Selected: {}/{}) | Mode: [{}] (Press Tab or 'c' to toggle) ",
         selected_count,
-        app.pages.len()
+        app.pages.len(),
+        mode_text
     ))
     .style(Style::default().fg(Color::Cyan).add_modifier(Modifier::BOLD))
     .alignment(Alignment::Center)
@@ -543,7 +552,7 @@ fn draw_page_selection(f: &mut ratatui::Frame, app: &mut App, area: Rect) {
 
     f.render_stateful_widget(list, chunks[1], &mut app.page_list_state);
 
-    let footer = Paragraph::new(" ↑/↓ or k/j: Navigate | Space: Toggle | 'a': Select All | 'n': Deselect All | Enter: Confirm | Esc: Back ")
+    let footer = Paragraph::new(" ↑/↓ or k/j: Navigate | Space: Toggle | 'a': Select All | 'n': Deselect All | Tab/'c': Toggle Flat/Category | Enter: Confirm | Esc: Back ")
         .alignment(Alignment::Center)
         .block(Block::default().borders(Borders::ALL).border_style(Style::default().fg(Color::DarkGray)));
     f.render_widget(footer, chunks[2]);
